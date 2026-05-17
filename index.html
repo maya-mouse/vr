@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>PA#1 - Stereo Camera</title>
+  <style>
+    body { 
+      font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    #container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    fieldset {
+      border: 2px solid black;
+      border-radius: 7px;
+      background-color: white;
+      padding: 12px;
+      margin-bottom: 10px;
+      width: 320px;
+    }
+    legend {
+      font-weight: bold;
+    }
+    label {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      align-items: center;
+    }
+    input[type="number"], input[type="range"] {
+      width: 120px;
+    }
+    span.val-display {
+      font-weight: bold;
+      color: #0055aa;
+      min-width: 40px;
+      display: inline-block;
+      text-align: right;
+    }
+    #canvas-holder {
+      border: 2px solid black;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    }
+  </style>
+
+  <script src="./Utils/trackball-rotator.js"></script>
+  <script src="./Utils/m4.js"></script>
+  <script src="./shader.gpu"></script>
+  <script src="./Model.js"></script>
+  <script src="./main.js"></script>
+</head>
+<body onload="init()">
+
+  <h2>WebGL Stereo Camera - Ding-Dong Surface</h2>
+  <p id="message">Перетягуй мишку, щоб обертати модель. Використовуй окуляри для стереоефекту.</p>
+
+  <div id="container">
+    <div id="controls">
+      <fieldset>
+        <legend>Поверхня (Grid)</legend>
+        <label>uCount: <input id="uCount" type="number" min="4" max="360" value="60" step="1"></label>
+        <label>vCount: <input id="vCount" type="number" min="3" max="200" value="48" step="1"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Стереокамера</legend>
+        <label>
+          <span>Eye Separation (<span id="eyeSepVal" class="val-display">0.06</span>):</span>
+          <input id="eyeSep" type="range" min="0.05" max="2" value="0.06" step="0.05">
+        </label>
+        <label>
+          <span>FOV Angle (<span id="fovVal" class="val-display">45</span>°):</span>
+          <input id="fov" type="range" min="10" max="100" value="45" step="1">
+        </label>
+        <label>
+          <span>Near Clip (<span id="nearClipVal" class="val-display">4.0</span>):</span>
+          <input id="nearClip" type="range" min="1.0" max="15.0" value="4.0" step="0.1">
+        </label>
+        <label>
+          <span>Convergence (<span id="convergenceVal" class="val-display">10.0</span>):</span>
+          <input id="convergence" type="range" min="0.5" max="30.0" value="10.0" step="0.5">
+        </label>
+      </fieldset>
+    </div>
+
+    <div id="canvas-holder">
+       <canvas width="600" height="600" id="webglcanvas"></canvas>
+    </div>
+  </div>
+
+  <video id="webcam" autoplay playsinline style="display:none;"></video>
+
+</body>
+</html>

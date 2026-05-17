@@ -1,0 +1,42 @@
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;
+attribute vec2 texCoord;
+
+uniform mat4 ModelViewProjectionMatrix;
+uniform bool u_isWebcam;
+
+varying vec2 v_texCoord;
+
+void main() {
+    if (u_isWebcam) {
+        // Для веб-камери просто передаємо координати вершини напряму (-1 до 1)
+        gl_Position = vec4(vertex, 1.0);
+    } else {
+        gl_Position = ModelViewProjectionMatrix * vec4(vertex, 1.0);
+    }
+    v_texCoord = texCoord;
+}`;
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+uniform vec4 color;
+uniform sampler2D u_texture;
+uniform bool u_isWebcam;
+
+varying vec2 v_texCoord;
+
+void main() {
+    if (u_isWebcam) {
+        // Відео з камери зазвичай дзеркальне, віддзеркалюємо по X (1.0 - x)
+        gl_FragColor = texture2D(u_texture, vec2(1.0 - v_texCoord.x, v_texCoord.y));
+    } else {
+        gl_FragColor = color;
+    }
+}`;
