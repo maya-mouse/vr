@@ -1,0 +1,17 @@
+{
+  "name": "lr1f",
+  "version": "1.0.0",
+  "description": "Project that accompanies VGGI credit module.",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "express": "^5.2.1",
+    "ws": "^8.20.1"
+  }
+}

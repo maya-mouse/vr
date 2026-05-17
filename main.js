@@ -10,9 +10,14 @@ let webcamTexture;
 let webcamQuadBuffer;
 let webcamTexCoordBuffer;
 
+let ws;
+let phoneRotationMatrix = m4.identity(); 
+let isPhoneConnected = false;
+
 function deg2rad(angle) {
     return angle * Math.PI / 180;
 }
+
 
 function StereoCamera(convergence, eyeSeparation, aspectRatio, fovDeg, nearClippingDistance, farClippingDistance) {
     this.mConvergence          = convergence;
@@ -60,6 +65,98 @@ function StereoCamera(convergence, eyeSeparation, aspectRatio, fovDeg, nearClipp
     };
 }
 
+
+function connectPhone() {
+    let ip = document.getElementById('phoneIp').value;
+    let port = document.getElementById('phonePort').value;
+    let statusLabel = document.getElementById('status');
+
+    statusLabel.innerText = "Підключення...";
+    statusLabel.style.color = "orange";
+
+    if (ws) {
+        ws.close();
+    }
+
+    ws = new WebSocket("ws://" + ip + ":" + port + "/sensor/connect");
+
+    ws.onopen = function() {
+        statusLabel.innerText = "З'єднано з телефоном";
+        statusLabel.style.color = "green";
+        isPhoneConnected = true;
+    };
+
+    ws.onmessage = function(event) {
+        let data = JSON.parse(event.data);
+        
+        if (data.type === "rotation_vector" || data.sensorType === 11) {
+            let values = data.values;
+            phoneRotationMatrix = getRotationMatrixFromVector(values);
+            draw(); 
+        }
+    };
+
+    ws.onclose = function() {
+        statusLabel.innerText = "Відключено";
+        statusLabel.style.color = "red";
+        isPhoneConnected = false;
+    };
+
+    ws.onerror = function(err) {
+        console.error("Помилка WebSocket: ", err);
+        statusLabel.innerText = "Помилка зв'язку";
+        statusLabel.style.color = "red";
+        isPhoneConnected = false;
+    };
+}
+
+
+function getRotationMatrixFromVector(fv) {
+    let q0, q1 = fv[0], q2 = fv[1], q3 = fv[2];
+    
+    if (fv.length >= 4) {
+        q0 = fv[3]; 
+    } else {
+        q0 = 1.0 - q1*q1 - q2*q2 - q3*q3;
+        q0 = q0 > 0.0 ? Math.sqrt(q0) : 0.0;
+    }
+
+    let sq_q1 = 2 * q1 * q1;
+    let sq_q2 = 2 * q2 * q2;
+    let sq_q3 = 2 * q3 * q3;
+    
+    let q1_q2 = 2 * q1 * q2;
+    let q3_q0 = 2 * q3 * q0;
+    let q1_q3 = 2 * q1 * q3;
+    let q2_q0 = 2 * q2 * q0;
+    let q2_q3 = 2 * q2 * q3;
+    let q1_q0 = 2 * q1 * q0;
+
+    let R = new Float32Array(16);
+    
+    R[0] = 1.0 - sq_q2 - sq_q3;
+    R[1] = q1_q2 - q3_q0;
+    R[2] = q1_q3 + q2_q0;
+    R[3] = 0.0;
+
+    R[4] = q1_q2 + q3_q0;
+    R[5] = 1.0 - sq_q1 - sq_q3;
+    R[6] = q2_q3 - q1_q0;
+    R[7] = 0.0;
+
+    R[8] = q1_q3 - q2_q0;
+    R[9] = q2_q3 + q1_q0;
+    R[10] = 1.0 - sq_q1 - sq_q2;
+    R[11] = 0.0;
+
+    R[12] = 0.0;
+    R[13] = 0.0;
+    R[14] = 0.0;
+    R[15] = 1.0;
+
+    return R;
+}
+
 function rebuildSurfaceFromUI() {
     let uCount = parseInt(document.getElementById('uCount')?.value) || 60;
     let vCount = parseInt(document.getElementById('vCount')?.value) || 48;
@@ -71,7 +168,6 @@ function rebuildSurfaceFromUI() {
         function(u, v){ return dingDong_param(u, v, 1.0); },
         uCount, vCount
     );
-    
     surface.setColors([1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]);
 }
 
@@ -116,10 +212,11 @@ function draw() {
     gl.colorMask(true, true, true, true);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+
     gl.enable(gl.DEPTH_TEST);
     gl.uniform1i(shProgram.uIsWebcam, 0);
 
-    let modelViewBase = (typeof spaceball !== 'undefined' && spaceball) ? spaceball.getViewMatrix() : m4.identity();
+    let modelViewBase = isPhoneConnected ? phoneRotationMatrix : ((typeof spaceball !== 'undefined' && spaceball) ? spaceball.getViewMatrix() : m4.identity());
     
     let modelTransform = m4.translation(0, 0, -10.0);
     modelTransform = m4.scale(modelTransform, 5.0, 5.0, 1.0); 

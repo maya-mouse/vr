@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>PA#1 - Stereo Camera</title>
+  <title>PA#2 - Tangible Interface (Rotation Vector)</title>
   <style>
     body { 
       font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
@@ -35,7 +35,7 @@
       margin: 8px 0;
       align-items: center;
     }
-    input[type="number"], input[type="range"] {
+    input[type="number"], input[type="range"], input[type="text"] {
       width: 120px;
     }
     span.val-display {
@@ -49,6 +49,10 @@
       border: 2px solid black;
       box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
     }
+    #status {
+      font-weight: bold;
+      color: red;
+    }
   </style>
 
   <script src="./Utils/trackball-rotator.js"></script>
@@ -59,11 +63,23 @@
 </head>
 <body onload="init()">
 
-  <h2>WebGL Stereo Camera - Ding-Dong Surface</h2>
-  <p id="message">Перетягуй мишку, щоб обертати модель. Використовуй окуляри для стереоефекту.</p>
+  <h2>WebGL Tangible Interface - Variant 11 (Rotation Vector)</h2>
+  <p id="message">Нахиляй смартфон у просторі, щоб керувати орієнтацією моделі.</p>
 
   <div id="container">
     <div id="controls">
+      <fieldset>
+        <legend>Tangible Контролер (Смартфон)</legend>
+        <label>IP Смартфона: 
+          <input id="phoneIp" type="text" value="111.111.1.111">
+        </label>
+        <label>Порт Sensor Server: 
+          <input id="phonePort" type="text" value="8080">
+        </label>
+        <button id="connectBtn" onclick="connectPhone()" style="width:100%; margin-top:5px; font-weight:bold; height:30px;">Підключити телефон</button>
+        <p>Статус: <span id="status">Відключено</span></p>
+      </fieldset>
+
       <fieldset>
         <legend>Поверхня (Grid)</legend>
         <label>uCount: <input id="uCount" type="number" min="4" max="360" value="60" step="1"></label>
@@ -74,7 +90,7 @@
         <legend>Стереокамера</legend>
         <label>
           <span>Eye Separation (<span id="eyeSepVal" class="val-display">0.06</span>):</span>
-          <input id="eyeSep" type="range" min="0.05" max="2" value="0.06" step="0.05">
+          <input id="eyeSep" type="range" min="0.0" max="0.5" value="0.06" step="0.005">
         </label>
         <label>
           <span>FOV Angle (<span id="fovVal" class="val-display">45</span>°):</span>
