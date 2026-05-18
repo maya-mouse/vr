@@ -165,5 +165,15 @@
 
         <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+       
+        setTimeout(() => {
+            const panel = document.getElementById('ar-debug-panel');
+            if (panel && panel.innerHTML === "Система логування AR активована:<br>") {
+                logToScreen("Помилка: Браузер не зміг завантажити файл 'pattern-img.patt'. Перевірте, чи правильно вказано назву файлу в репозиторії на GitHub!");
+            }
+        }, 5000);
+    </script>
 </body>
 </html>
