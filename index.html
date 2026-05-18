@@ -7,7 +7,7 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <script>
-        // Математична функція поверхні Дін-Донга з твоїх попередніх робіт
+
         function dingDong_param(u, v, a = 1.0) {
             if (v >= 1.0) v = 0.999999;
             let oneMinusV = 1.0 - v;
@@ -19,18 +19,17 @@
             return { x: x, y: y, z: z };
         }
 
-        // Реєструємо кастомний 3D-компонент для A-Frame, який побудує нашу фігуру
+
         AFRAME.registerComponent('ding-dong-surface', {
             schema: {
                 uCount: { type: 'int', default: 40 },
                 vCount: { type: 'int', default: 30 },
-                scaleFactor: { type: 'number', default: 0.5 } // Масштаб, щоб вписати в маркер
+                scaleFactor: { type: 'number', default: 0.5 }
             },
             init: function () {
                 let el = this.el;
                 let data = this.data;
 
-                // Створюємо геометрію для каркасної сітки (Three.js використовується під капотом A-Frame)
                 let geometry = new THREE.BufferGeometry();
                 let vertices = [];
                 let indices = [];
@@ -41,7 +40,6 @@
                 let deltaU = (uMax - uMin) / (data.uCount - 1);
                 let deltaV = (vMax - vMin) / (data.vCount - 1);
 
-                // 1. Генеруємо масив точок поверхні
                 let grid = [];
                 for (let i = 0; i < data.uCount; i++) {
                     let u = uMin + i * deltaU;
@@ -50,41 +48,35 @@
                         let v = vMin + j * deltaV;
                         let p = dingDong_param(u, v, 1.0);
                         
-                        // Застосовуємо масштаб та записуємо координати
                         let vx = p.x * data.scaleFactor;
                         let vy = p.y * data.scaleFactor;
                         let vz = p.z * data.scaleFactor;
                         
                         vertices.push(vx, vy, vz);
-                        grid[i][j] = (vertices.length / 3) - 1; // індекс вершини
+                        grid[i][j] = (vertices.length / 3) - 1;
                     }
                 }
 
-                // 2. Створюємо індекси ліній для побудови сітки (ізолінії U та V)
-                // Лінії вздовж U
                 for (let i = 0; i < data.uCount; i++) {
                     for (let j = 0; j < data.vCount - 1; j++) {
                         indices.push(grid[i][j], grid[i][j+1]);
                     }
                 }
-                // Лінії вздовж V
                 for (let j = 0; j < data.vCount; j++) {
                     for (let i = 0; i < data.uCount - 1; i++) {
                         indices.push(grid[i][j], grid[i+1][j]);
                     }
                 }
 
-                // Завантажуємо дані в Three.js геометрію
                 geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
                 geometry.setIndex(indices);
 
-                // Створюємо матеріал для ліній каркасу (робимо яскраві бірюзові або рожеві лінії)
                 let material = new THREE.LineBasicMaterial({ 
                     color: 0x00ffcc, 
-                    linewidth: 2 
+                    linewidth: 2,
+                    side: THREE.DoubleSide
                 });
 
-                // Створюємо фінальний 3D-об'єкт ліній та додаємо його на сцену до маркера
                 let lineSegments = new THREE.LineSegments(geometry, material);
                 el.setObject3D('mesh', lineSegments);
             }
