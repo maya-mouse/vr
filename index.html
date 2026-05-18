@@ -2,105 +2,112 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Control Task - AR Registration Template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Control Task: AR Surface</title>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
 
     <script>
-
-        function dingDong_param(u, v, a = 1.0) {
-            if (v >= 1.0) v = 0.999999;
-            let oneMinusV = 1.0 - v;
-            if (oneMinusV < 0) oneMinusV = 0;
-            let r = a * v * Math.sqrt(oneMinusV);
-            let x = r * Math.cos(u);
-            let y = r * Math.sin(u);
-            let z = a * v;
-            return { x: x, y: y, z: z };
-        }
-
-
         AFRAME.registerComponent('ding-dong-surface', {
-            schema: {
-                uCount: { type: 'int', default: 40 },
-                vCount: { type: 'int', default: 30 },
-                scaleFactor: { type: 'number', default: 0.5 }
-            },
             init: function () {
-                let el = this.el;
-                let data = this.data;
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                const indices = [];
 
-                let geometry = new THREE.BufferGeometry();
-                let vertices = [];
-                let indices = [];
+                function dingDong_param(u, v, a = 1.0) {
+                    if (v >= 1.0) v = 0.9999;
+                    let oneMinusV = 1.0 - v;
+                    if (oneMinusV < 0) oneMinusV = 0;
+                    let r = a * v * Math.sqrt(oneMinusV);
+                    return {
+                        x: r * Math.cos(u),
+                        y: r * Math.sin(u),
+                        z: a * v
+                    };
+                }
 
-                let uMin = 0.0, uMax = 2.0 * Math.PI;
-                let vMin = -2.0, vMax = 0.9999;
+                const uCount = 40;
+                const vCount = 30;
+                
+                const uMin = 0.0, uMax = 2.0 * Math.PI;
 
-                let deltaU = (uMax - uMin) / (data.uCount - 1);
-                let deltaV = (vMax - vMin) / (data.vCount - 1);
+                const vMin = 0.0, vMax = 0.9999; 
 
-                let grid = [];
-                for (let i = 0; i < data.uCount; i++) {
+                const deltaU = (uMax - uMin) / (uCount - 1);
+                const deltaV = (vMax - vMin) / (vCount - 1);
+
+                for (let i = 0; i < uCount; i++) {
                     let u = uMin + i * deltaU;
-                    grid[i] = [];
-                    for (let j = 0; j < data.vCount; j++) {
+                    for (let j = 0; j < vCount; j++) {
                         let v = vMin + j * deltaV;
                         let p = dingDong_param(u, v, 1.0);
                         
-                        let vx = p.x * data.scaleFactor;
-                        let vy = p.y * data.scaleFactor;
-                        let vz = p.z * data.scaleFactor;
-                        
-                        vertices.push(vx, vy, vz);
-                        grid[i][j] = (vertices.length / 3) - 1;
+
+                        vertices.push(p.x, p.z, p.y); 
                     }
                 }
 
-                for (let i = 0; i < data.uCount; i++) {
-                    for (let j = 0; j < data.vCount - 1; j++) {
-                        indices.push(grid[i][j], grid[i][j+1]);
-                    }
-                }
-                for (let j = 0; j < data.vCount; j++) {
-                    for (let i = 0; i < data.uCount - 1; i++) {
-                        indices.push(grid[i][j], grid[i+1][j]);
+                for (let i = 0; i < uCount - 1; i++) {
+                    for (let j = 0; j < vCount - 1; j++) {
+                        let v0 = i * vCount + j;
+                        let v1 = i * vCount + (j + 1);
+                        let v2 = (i + 1) * vCount + j;
+                        let v3 = (i + 1) * vCount + (j + 1);
+
+                        indices.push(v0, v1, v2);
+                        indices.push(v1, v3, v2);
                     }
                 }
 
-                geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
                 geometry.setIndex(indices);
+                
 
-                let material = new THREE.LineBasicMaterial({ 
-                    color: 0x00ffcc, 
-                    linewidth: 2,
-                    side: THREE.DoubleSide
+                geometry.computeVertexNormals();
+
+                const matSolid = new THREE.MeshNormalMaterial({
+                    side: THREE.DoubleSide,
+                    wireframe: false,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                
+
+                const matWire = new THREE.MeshBasicMaterial({
+                    color: 0x333333,
+                    wireframe: true
                 });
 
-                let lineSegments = new THREE.LineSegments(geometry, material);
-                el.setObject3D('mesh', lineSegments);
+                const meshSolid = new THREE.Mesh(geometry, matSolid);
+                const meshWire = new THREE.Mesh(geometry, matWire);
+
+                const group = new THREE.Group();
+                group.add(meshSolid);
+                group.add(meshWire);
+
+                group.position.set(0, 0, 0);
+
+                this.el.setObject3D('mesh', group);
             }
         });
     </script>
 </head>
 
-<body style="margin: 0px; overflow: hidden;">
+<body style="margin: 0; overflow: hidden;">
+<a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;">
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-
-        <a-marker type="pattern" url="./pattern-pattern.patt">
-            
-            <a-entity 
-                ding-dong-surface="uCount: 45; vCount: 30; scaleFactor: 0.8"
-                position="0 0.2 0" 
+    <a-marker type="pattern" url="pattern-img.patt" smooth="true" smoothCount="5">
+        <a-entity
+                ding-dong-surface
+                position="0 0 0"
+                scale="0.8 0.8 0.8"
                 rotation="-90 0 0">
-            </a-entity>
+        </a-entity>
+    </a-marker>
 
-        </a-marker>
-
-        <a-entity camera></a-entity>
-
-    </a-scene>
-
+    <a-entity camera></a-entity>
+</a-scene>
 </body>
 </html>
