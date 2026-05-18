@@ -22,8 +22,31 @@
             border-radius: 5px;
             overflow-y: auto;
             z-index: 999999;
-            pointer-events: none; /* Щоб панель не заважала клікати по екрану */
+            pointer-events: none;
             border: 1px solid #00ffcc;
+        }
+
+        #scanning-sign {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 204, 0.2);
+            color: #00ffcc;
+            padding: 10px 20px;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 20px;
+            border: 1px solid #00ffcc;
+            z-index: 999999;
+            animation: pulse 1.5s infinite;
+            pointer-events: none;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
         }
     </style>
 
@@ -43,18 +66,10 @@
                 const geometry = new THREE.BufferGeometry();
                 const vertices = [];
                 const indices = [];
-
-
                 let functionCalls = 0;
 
                 function dingDong_param(u, v, a = 1.0) {
                     functionCalls++;
-                    
-    
-                    if (functionCalls === 1) {
-                        logToScreen(`Функція викликана! Перші параметри: u=${u.toFixed(2)}, v=${v.toFixed(2)}`);
-                    }
-
                     if (v >= 1.0) v = 0.9999;
                     let oneMinusV = 1.0 - v;
                     if (oneMinusV < 0) oneMinusV = 0;
@@ -68,7 +83,6 @@
 
                 const uCount = 40;
                 const vCount = 30;
-                
                 const uMin = 0.0, uMax = 2.0 * Math.PI;
                 const vMin = 0.0, vMax = 0.9999; 
 
@@ -77,7 +91,6 @@
 
                 logToScreen(`Генерація сітки точок (${uCount}x${vCount})...`);
 
-             
                 for (let i = 0; i < uCount; i++) {
                     let u = uMin + i * deltaU;
                     for (let j = 0; j < vCount; j++) {
@@ -87,9 +100,8 @@
                     }
                 }
 
-                logToScreen(`Математику пораховано. Разом викликів функції: ${functionCalls}`);
+                logToScreen(`Математику пораховано. Разом викликів: ${functionCalls}`);
 
-      
                 for (let i = 0; i < uCount - 1; i++) {
                     for (let j = 0; j < vCount - 1; j++) {
                         let v0 = i * vCount + j;
@@ -130,18 +142,22 @@
             }
         });
 
-
         window.addEventListener('DOMContentLoaded', () => {
             const marker = document.querySelector('a-marker');
-            
             logToScreen("Очікування завантаження AR-маркера...");
             
             marker.addEventListener('markerFound', () => {
                 logToScreen("🟢 МАРКЕР ЗНАЙДЕНО! Малюю фігуру...");
+    
+                const sign = document.getElementById('scanning-sign');
+                if (sign) sign.style.display = 'none';
             });
 
             marker.addEventListener('markerLost', () => {
-                logToScreen("🔴 Маркер втрачено з поля зору камери.");
+                logToScreen("🔴 Маркер втрачено з поля зору.");
+            
+                const sign = document.getElementById('scanning-sign');
+                if (sign) sign.style.display = 'block';
             });
         });
     </script>
@@ -150,6 +166,8 @@
 <body style="margin: 0; overflow: hidden;">
 
     <div id="ar-debug-panel">Система логування AR активована:<br></div>
+    
+    <div id="scanning-sign">ШУКАЮ МАРКЕР НА ЕКРАНІ...</div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
 
@@ -166,13 +184,12 @@
     </a-scene>
 
     <script>
-       
         setTimeout(() => {
             const panel = document.getElementById('ar-debug-panel');
-            if (panel && panel.innerHTML === "Система логування AR активована:<br>") {
-                logToScreen("Помилка: Браузер не зміг завантажити файл 'pattern-img.patt'. Перевірте, чи правильно вказано назву файлу в репозиторії на GitHub!");
+            if (panel && !panel.innerHTML.includes("успішно зібрана")) {
+                logToScreen("⚠️ Помилка завантаження 'pattern-img.patt'. Перевірте назву файлу в репозиторії GitHub!");
             }
-        }, 5000);
+        }, 6000);
     </script>
 </body>
 </html>
