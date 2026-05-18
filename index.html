@@ -1,102 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>PA#1 - Stereo Camera</title>
-  <style>
-    body { 
-      font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-      background-color: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-    #container {
-      display: flex;
-      flex-direction: row;
-      gap: 20px;
-      align-items: flex-start;
-    }
-    fieldset {
-      border: 2px solid black;
-      border-radius: 7px;
-      background-color: white;
-      padding: 12px;
-      margin-bottom: 10px;
-      width: 320px;
-    }
-    legend {
-      font-weight: bold;
-    }
-    label {
-      display: flex;
-      justify-content: space-between;
-      margin: 8px 0;
-      align-items: center;
-    }
-    input[type="number"], input[type="range"] {
-      width: 120px;
-    }
-    span.val-display {
-      font-weight: bold;
-      color: #0055aa;
-      min-width: 40px;
-      display: inline-block;
-      text-align: right;
-    }
-    #canvas-holder {
-      border: 2px solid black;
-      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-    }
-  </style>
+    <meta charset="utf-8">
+    <title>Control Task - AR Registration Template</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-  <script src="./Utils/trackball-rotator.js"></script>
-  <script src="./Utils/m4.js"></script>
-  <script src="./shader.gpu"></script>
-  <script src="./Model.js"></script>
-  <script src="./main.js"></script>
+    <script>
+        // Математична функція поверхні Дін-Донга з твоїх попередніх робіт
+        function dingDong_param(u, v, a = 1.0) {
+            if (v >= 1.0) v = 0.999999;
+            let oneMinusV = 1.0 - v;
+            if (oneMinusV < 0) oneMinusV = 0;
+            let r = a * v * Math.sqrt(oneMinusV);
+            let x = r * Math.cos(u);
+            let y = r * Math.sin(u);
+            let z = a * v;
+            return { x: x, y: y, z: z };
+        }
+
+        // Реєструємо кастомний 3D-компонент для A-Frame, який побудує нашу фігуру
+        AFRAME.registerComponent('ding-dong-surface', {
+            schema: {
+                uCount: { type: 'int', default: 40 },
+                vCount: { type: 'int', default: 30 },
+                scaleFactor: { type: 'number', default: 0.5 } // Масштаб, щоб вписати в маркер
+            },
+            init: function () {
+                let el = this.el;
+                let data = this.data;
+
+                // Створюємо геометрію для каркасної сітки (Three.js використовується під капотом A-Frame)
+                let geometry = new THREE.BufferGeometry();
+                let vertices = [];
+                let indices = [];
+
+                let uMin = 0.0, uMax = 2.0 * Math.PI;
+                let vMin = -2.0, vMax = 0.9999;
+
+                let deltaU = (uMax - uMin) / (data.uCount - 1);
+                let deltaV = (vMax - vMin) / (data.vCount - 1);
+
+                // 1. Генеруємо масив точок поверхні
+                let grid = [];
+                for (let i = 0; i < data.uCount; i++) {
+                    let u = uMin + i * deltaU;
+                    grid[i] = [];
+                    for (let j = 0; j < data.vCount; j++) {
+                        let v = vMin + j * deltaV;
+                        let p = dingDong_param(u, v, 1.0);
+                        
+                        // Застосовуємо масштаб та записуємо координати
+                        let vx = p.x * data.scaleFactor;
+                        let vy = p.y * data.scaleFactor;
+                        let vz = p.z * data.scaleFactor;
+                        
+                        vertices.push(vx, vy, vz);
+                        grid[i][j] = (vertices.length / 3) - 1; // індекс вершини
+                    }
+                }
+
+                // 2. Створюємо індекси ліній для побудови сітки (ізолінії U та V)
+                // Лінії вздовж U
+                for (let i = 0; i < data.uCount; i++) {
+                    for (let j = 0; j < data.vCount - 1; j++) {
+                        indices.push(grid[i][j], grid[i][j+1]);
+                    }
+                }
+                // Лінії вздовж V
+                for (let j = 0; j < data.vCount; j++) {
+                    for (let i = 0; i < data.uCount - 1; i++) {
+                        indices.push(grid[i][j], grid[i+1][j]);
+                    }
+                }
+
+                // Завантажуємо дані в Three.js геометрію
+                geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+                geometry.setIndex(indices);
+
+                // Створюємо матеріал для ліній каркасу (робимо яскраві бірюзові або рожеві лінії)
+                let material = new THREE.LineBasicMaterial({ 
+                    color: 0x00ffcc, 
+                    linewidth: 2 
+                });
+
+                // Створюємо фінальний 3D-об'єкт ліній та додаємо його на сцену до маркера
+                let lineSegments = new THREE.LineSegments(geometry, material);
+                el.setObject3D('mesh', lineSegments);
+            }
+        });
+    </script>
 </head>
-<body onload="init()">
 
-  <h2>WebGL Stereo Camera - Ding-Dong Surface</h2>
-  <p id="message">Перетягуй мишку, щоб обертати модель. Використовуй окуляри для стереоефекту.</p>
+<body style="margin: 0px; overflow: hidden;">
 
-  <div id="container">
-    <div id="controls">
-      <fieldset>
-        <legend>Поверхня (Grid)</legend>
-        <label>uCount: <input id="uCount" type="number" min="4" max="360" value="60" step="1"></label>
-        <label>vCount: <input id="vCount" type="number" min="3" max="200" value="48" step="1"></label>
-      </fieldset>
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
 
-      <fieldset>
-        <legend>Стереокамера</legend>
-        <label>
-          <span>Eye Separation (<span id="eyeSepVal" class="val-display">0.06</span>):</span>
-          <input id="eyeSep" type="range" min="0.05" max="2" value="0.06" step="0.05">
-        </label>
-        <label>
-          <span>FOV Angle (<span id="fovVal" class="val-display">45</span>°):</span>
-          <input id="fov" type="range" min="10" max="100" value="45" step="1">
-        </label>
-        <label>
-          <span>Near Clip (<span id="nearClipVal" class="val-display">4.0</span>):</span>
-          <input id="nearClip" type="range" min="1.0" max="15.0" value="4.0" step="0.1">
-        </label>
-        <label>
-          <span>Convergence (<span id="convergenceVal" class="val-display">10.0</span>):</span>
-          <input id="convergence" type="range" min="0.5" max="30.0" value="10.0" step="0.5">
-        </label>
-      </fieldset>
-    </div>
+        <a-marker type="pattern" url="./pattern-cw.patt">
+            
+            <a-entity 
+                ding-dong-surface="uCount: 45; vCount: 30; scaleFactor: 0.8"
+                position="0 0.2 0" 
+                rotation="-90 0 0">
+            </a-entity>
 
-    <div id="canvas-holder">
-       <canvas width="600" height="600" id="webglcanvas"></canvas>
-    </div>
-  </div>
+        </a-marker>
 
-  <video id="webcam" autoplay playsinline style="display:none;"></video>
+        <a-entity camera></a-entity>
+
+    </a-scene>
 
 </body>
 </html>
